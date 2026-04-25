@@ -83,17 +83,16 @@ st.markdown("<div class='sub'>Ultra Clean • Stable • Production UI</div>", u
 st.divider()
 
 # ---------------- INPUT SECTION ----------------
-with st.container():
-    col1, col2 = st.columns(2)
+col1, col2 = st.columns(2)
 
-    with col1:
-        bedrooms = st.number_input("Bedrooms", 1, 20, 2)
-        bathrooms = st.number_input("Bathrooms", 1, 20, 2)
+with col1:
+    bedrooms = st.slider("Bedrooms", 1, 10, 2)
+    bathrooms = st.slider("Bathrooms", 1, 10, 2)
 
-    with col2:
-        acre = st.number_input("Acre Lot", 0.0, 10.0, 0.5)
-        size = st.slider("House Size (sqft)", 300, 5000, 1200)
-
+with col2:
+    acre = st.slider("Acre Lot", 0.1, 2.0, 0.5)
+    size = st.slider("House Size (sqft)", 300, 5000, 1200)
+    
 # ---------------- BUTTON ----------------
 if st.button("🚀 Predict Price"):
     data = np.array([[bedrooms, bathrooms, acre, size]])
