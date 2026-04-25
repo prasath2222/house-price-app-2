@@ -3,14 +3,14 @@ import numpy as np
 import plotly.graph_objects as go
 from sklearn.linear_model import LinearRegression
 
-# =========================
-# PAGE CONFIG
-# =========================
+# -----------------------
+# CONFIG
+# -----------------------
 st.set_page_config(page_title="House Price Predictor PRO", layout="centered")
 
-# =========================
-# MODEL (stable, no crash)
-# =========================
+# -----------------------
+# MODEL
+# -----------------------
 model = LinearRegression()
 
 X = np.array([
@@ -23,67 +23,63 @@ y = np.array([150000, 250000, 450000, 800000])
 
 model.fit(X, y)
 
-# =========================
-# CSS (FINAL CLEAN UI)
-# =========================
+# -----------------------
+# STYLE (NO EXTRA BOXES)
+# -----------------------
 st.markdown("""
 <style>
 .block-container {
-    max-width: 800px;
-    padding-top: 1.5rem;
+    max-width: 700px;
+    padding-top: 1rem;
 }
+header {visibility:hidden;}
 
-header {visibility: hidden;}
-
-.card {
-    background: #111827;
-    padding: 18px;
-    border-radius: 12px;
-    border: 1px solid #1f2937;
-    margin-bottom: 12px;
+.title {
+    text-align:center;
+    font-size:28px;
+    font-weight:700;
+}
+.sub {
+    text-align:center;
+    color:gray;
+    margin-bottom:15px;
 }
 
 .result {
     background: linear-gradient(90deg,#00c6ff,#0072ff);
-    padding: 14px;
-    border-radius: 10px;
+    padding: 12px;
+    border-radius: 8px;
     text-align: center;
-    font-size: 20px;
+    font-size: 18px;
     font-weight: bold;
+    margin-top:10px;
 }
 
 .range {
-    background: #1e293b;
-    padding: 8px;
-    border-radius: 8px;
-    text-align: center;
-    margin-top: 6px;
+    text-align:center;
+    color:lightgray;
+    margin-top:5px;
 }
 
 .stButton>button {
-    width: 100%;
-    height: 45px;
-    border-radius: 10px;
-    font-weight: 600;
+    width:100%;
+    border-radius:8px;
+    height:40px;
 }
 </style>
 """, unsafe_allow_html=True)
 
-# =========================
+# -----------------------
 # HEADER
-# =========================
-st.markdown("""
-<h1 style='text-align:center;'>🏡 House Price Predictor PRO</h1>
-<p style='text-align:center; color:gray;'>Ultra clean • Stable • Production UI</p>
-""", unsafe_allow_html=True)
+# -----------------------
+st.markdown("<div class='title'>🏡 House Price Predictor PRO</div>", unsafe_allow_html=True)
+st.markdown("<div class='sub'>Clean • Stable • Final</div>", unsafe_allow_html=True)
 
-st.markdown("---")
+st.divider()
 
-# =========================
-# INPUT SECTION
-# =========================
-st.markdown("<div class='card'>", unsafe_allow_html=True)
-
+# -----------------------
+# INPUTS (NO CARDS = CLEAN)
+# -----------------------
 col1, col2 = st.columns(2)
 
 with col1:
@@ -94,50 +90,38 @@ with col2:
     acre = st.number_input("Acre Lot", 0.0, 10.0, 0.5)
     size = st.slider("House Size (sqft)", 300, 5000, 1200)
 
-st.markdown("</div>", unsafe_allow_html=True)
-
-# =========================
+# -----------------------
 # BUTTON
-# =========================
+# -----------------------
 predict = st.button("🚀 Predict Price")
 
-# =========================
-# PREDICTION
-# =========================
+# -----------------------
+# RESULT
+# -----------------------
 if predict:
 
     data = np.array([[bedrooms, bathrooms, acre, size]])
     price = model.predict(data)[0]
 
-    # clamp realistic
     price = max(50000, min(price, 2000000))
 
     low = price * 0.9
     high = price * 1.1
-
-    # =========================
-    # RESULT CARD
-    # =========================
-    st.markdown("<div class='card'>", unsafe_allow_html=True)
 
     st.markdown(f"<div class='result'>💰 ${price:,.2f}</div>", unsafe_allow_html=True)
     st.markdown(f"<div class='range'>Range: ${low:,.0f} - ${high:,.0f}</div>", unsafe_allow_html=True)
 
     avg = 350000
     if price < avg * 0.8:
-        st.success("📉 Undervalued")
+        st.success("Undervalued")
     elif price > avg * 1.2:
-        st.error("📈 Overpriced")
+        st.error("Overpriced")
     else:
-        st.info("⚖️ Fair Price")
+        st.info("Fair Price")
 
-    st.markdown("</div>", unsafe_allow_html=True)
-
-    # =========================
-    # GRAPH SECTION (FIXED SIZE)
-    # =========================
-    st.markdown("<div class='card'>", unsafe_allow_html=True)
-
+    # -----------------------
+    # GRAPH (PERFECT SIZE)
+    # -----------------------
     st.markdown("### 📈 Future Trend")
 
     years = [1,2,3,4,5]
@@ -152,17 +136,8 @@ if predict:
     ))
 
     fig.update_layout(
-        height=240,  # 🔥 perfect size
-        margin=dict(l=0, r=0, t=10, b=0),
-        xaxis_title="Years",
-        yaxis_title="Price"
+        height=220,   # 🔥 small clean graph
+        margin=dict(l=0, r=0, t=10, b=0)
     )
 
     st.plotly_chart(fig, use_container_width=True)
-
-    st.markdown("</div>", unsafe_allow_html=True)
-
-# =========================
-# FOOTER
-# =========================
-st.markdown("<p style='text-align:center; color:gray;'>✔ Final Clean UI • No Bugs</p>", unsafe_allow_html=True)
