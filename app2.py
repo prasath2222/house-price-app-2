@@ -3,14 +3,14 @@ import numpy as np
 import plotly.graph_objects as go
 from sklearn.linear_model import LinearRegression
 
-# -----------------------
-# CONFIG
-# -----------------------
+# ---------------- CONFIG ----------------
 st.set_page_config(page_title="House Price Predictor PRO", layout="centered")
 
-# -----------------------
-# MODEL
-# -----------------------
+# ---------------- SESSION FIX (IMPORTANT) ----------------
+if "price" not in st.session_state:
+    st.session_state.price = None
+
+# ---------------- MODEL ----------------
 model = LinearRegression()
 
 X = np.array([
@@ -23,41 +23,47 @@ y = np.array([150000, 250000, 450000, 800000])
 
 model.fit(X, y)
 
-# -----------------------
-# STYLE (NO EXTRA BOXES)
-# -----------------------
+# ---------------- UI STYLE ----------------
 st.markdown("""
 <style>
 .block-container {
-    max-width: 700px;
+    max-width: 750px;
     padding-top: 1rem;
 }
-header {visibility:hidden;}
+
+header {visibility: hidden;}
 
 .title {
     text-align:center;
-    font-size:28px;
+    font-size:30px;
     font-weight:700;
 }
+
 .sub {
     text-align:center;
     color:gray;
-    margin-bottom:15px;
+    margin-bottom:20px;
+}
+
+.card {
+    background:#111827;
+    padding:15px;
+    border-radius:10px;
+    margin-top:10px;
 }
 
 .result {
     background: linear-gradient(90deg,#00c6ff,#0072ff);
-    padding: 12px;
-    border-radius: 8px;
-    text-align: center;
-    font-size: 18px;
-    font-weight: bold;
-    margin-top:10px;
+    padding:12px;
+    border-radius:8px;
+    text-align:center;
+    font-size:20px;
+    font-weight:bold;
 }
 
 .range {
     text-align:center;
-    color:lightgray;
+    color:#9ca3af;
     margin-top:5px;
 }
 
@@ -65,46 +71,42 @@ header {visibility:hidden;}
     width:100%;
     border-radius:8px;
     height:40px;
+    font-weight:600;
 }
 </style>
 """, unsafe_allow_html=True)
 
-# -----------------------
-# HEADER
-# -----------------------
+# ---------------- HEADER ----------------
 st.markdown("<div class='title'>🏡 House Price Predictor PRO</div>", unsafe_allow_html=True)
-st.markdown("<div class='sub'>Clean • Stable • Final</div>", unsafe_allow_html=True)
+st.markdown("<div class='sub'>Ultra Clean • Stable • Production UI</div>", unsafe_allow_html=True)
 
 st.divider()
 
-# -----------------------
-# INPUTS (NO CARDS = CLEAN)
-# -----------------------
-col1, col2 = st.columns(2)
+# ---------------- INPUT SECTION ----------------
+with st.container():
+    col1, col2 = st.columns(2)
 
-with col1:
-    bedrooms = st.number_input("Bedrooms", 1, 20, 2)
-    bathrooms = st.number_input("Bathrooms", 1, 20, 2)
+    with col1:
+        bedrooms = st.number_input("Bedrooms", 1, 20, 2)
+        bathrooms = st.number_input("Bathrooms", 1, 20, 2)
 
-with col2:
-    acre = st.number_input("Acre Lot", 0.0, 10.0, 0.5)
-    size = st.slider("House Size (sqft)", 300, 5000, 1200)
+    with col2:
+        acre = st.number_input("Acre Lot", 0.0, 10.0, 0.5)
+        size = st.slider("House Size (sqft)", 300, 5000, 1200)
 
-# -----------------------
-# BUTTON
-# -----------------------
-predict = st.button("🚀 Predict Price")
-
-# -----------------------
-# RESULT
-# -----------------------
-if predict:
-
+# ---------------- BUTTON ----------------
+if st.button("🚀 Predict Price"):
     data = np.array([[bedrooms, bathrooms, acre, size]])
     price = model.predict(data)[0]
 
     price = max(50000, min(price, 2000000))
 
+    st.session_state.price = price
+
+# ---------------- RESULT (PERSISTENT) ----------------
+if st.session_state.price is not None:
+
+    price = st.session_state.price
     low = price * 0.9
     high = price * 1.1
 
@@ -119,9 +121,9 @@ if predict:
     else:
         st.info("Fair Price")
 
-    # -----------------------
-    # GRAPH (PERFECT SIZE)
-    # -----------------------
+    st.divider()
+
+    # ---------------- GRAPH ----------------
     st.markdown("### 📈 Future Trend")
 
     years = [1,2,3,4,5]
@@ -129,6 +131,7 @@ if predict:
     future_prices = [price * (1 + growth)**y for y in years]
 
     fig = go.Figure()
+
     fig.add_trace(go.Scatter(
         x=years,
         y=future_prices,
@@ -136,7 +139,7 @@ if predict:
     ))
 
     fig.update_layout(
-        height=220,   # 🔥 small clean graph
+        height=250,
         margin=dict(l=0, r=0, t=10, b=0)
     )
 
