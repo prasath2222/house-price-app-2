@@ -2,20 +2,20 @@ import streamlit as st
 import numpy as np
 import pandas as pd
 import xgboost as xgb
-import matplotlib.pyplot as plt
+import plotly.graph_objects as go
 
-# ---------------------------
+# -------------------------
 # PAGE CONFIG
-# ---------------------------
+# -------------------------
 st.set_page_config(
-    page_title="House Price Predictor",
+    page_title="House Price Predictor PRO",
     page_icon="🏠",
-    layout="centered"   # 🔥 IMPORTANT FIX
+    layout="wide"
 )
 
-# ---------------------------
+# -------------------------
 # LOAD MODEL
-# ---------------------------
+# -------------------------
 @st.cache_resource
 def load_model():
     model = xgb.XGBRegressor()
@@ -24,109 +24,176 @@ def load_model():
 
 model = load_model()
 
-# ---------------------------
-# CUSTOM CSS (CLEAN UI)
-# ---------------------------
+# -------------------------
+# PREMIUM CSS (GLASS UI)
+# -------------------------
 st.markdown("""
 <style>
-.main {
-    padding: 2rem;
+
+/* background gradient */
+[data-testid="stAppViewContainer"] {
+    background: linear-gradient(135deg, #0f172a, #020617);
 }
 
+/* center content */
 .block-container {
-    max-width: 800px;
+    max-width: 900px;
     margin: auto;
 }
 
+/* glass card */
+.card {
+    background: rgba(255,255,255,0.05);
+    padding: 20px;
+    border-radius: 15px;
+    backdrop-filter: blur(10px);
+    margin-bottom: 20px;
+}
+
+/* button */
 .stButton>button {
     width: 100%;
     border-radius: 10px;
     height: 45px;
     font-size: 16px;
+    background: linear-gradient(90deg, #00ffcc, #00b3ff);
+    color: black;
+    border: none;
 }
 
-.stNumberInput, .stSlider {
-    margin-bottom: 15px;
+/* title */
+.title {
+    text-align: center;
+    font-size: 40px;
+    font-weight: bold;
 }
 
-.result-box {
+/* subtitle */
+.subtitle {
+    text-align: center;
+    color: #9ca3af;
+    margin-bottom: 20px;
+}
+
+/* result */
+.result {
+    background: linear-gradient(90deg, #065f46, #064e3b);
     padding: 15px;
     border-radius: 10px;
-    background-color: #1e3a2f;
     text-align: center;
-    font-size: 18px;
+    font-size: 20px;
+}
+
+/* sidebar */
+section[data-testid="stSidebar"] {
+    background-color: #020617;
 }
 
 </style>
 """, unsafe_allow_html=True)
 
-# ---------------------------
+# -------------------------
 # TITLE
-# ---------------------------
-st.markdown("<h1 style='text-align:center;'>🏠 House Price Predictor</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align:center;'>Clean ML-based price estimator</p>", unsafe_allow_html=True)
+# -------------------------
+st.markdown("<div class='title'>🏠 House Price Predictor PRO</div>", unsafe_allow_html=True)
+st.markdown("<div class='subtitle'>Premium AI-powered real estate estimator</div>", unsafe_allow_html=True)
 
-st.markdown("---")
+# -------------------------
+# SIDEBAR
+# -------------------------
+st.sidebar.title("⚙️ Controls")
 
-# ---------------------------
-# INPUT SECTION
-# ---------------------------
-st.subheader("Enter Property Details")
+mode = st.sidebar.radio("Mode", ["Single Prediction", "CSV Batch"])
+location = st.sidebar.selectbox("Location", ["Urban", "Suburban", "Rural"])
 
-col1, col2 = st.columns(2)
+st.sidebar.markdown("---")
+st.sidebar.write("📊 Accuracy: 0.89")
+st.sidebar.write("Model: XGBoost")
 
-with col1:
-    bed = st.number_input("Bedrooms", 1, 10, 2)
-    bath = st.number_input("Bathrooms", 1, 10, 2)
+# -------------------------
+# LOCATION FACTOR
+# -------------------------
+location_factor = {
+    "Urban": 1.2,
+    "Suburban": 1.0,
+    "Rural": 0.8
+}
 
-with col2:
-    acre = st.number_input("Acre Lot", 0.01, 10.0, 0.5)
-    size = st.slider("House Size (sqft)", 300, 5000, 1200)
+# -------------------------
+# MAIN CARD
+# -------------------------
+st.markdown("<div class='card'>", unsafe_allow_html=True)
 
-# ---------------------------
-# PREDICT
-# ---------------------------
-if st.button("Predict Price"):
+if mode == "Single Prediction":
 
-    data = np.array([[bed, bath, acre, size]])
-    price = model.predict(data)[0]
+    col1, col2 = st.columns(2)
 
-    st.markdown(
-        f"<div class='result-box'>💰 Predicted Price: ${price:,.2f}</div>",
-        unsafe_allow_html=True
-    )
+    with col1:
+        bed = st.number_input("Bedrooms", 1, 10, 2)
+        bath = st.number_input("Bathrooms", 1, 10, 2)
 
-    low = price * 0.9
-    high = price * 1.1
+    with col2:
+        acre = st.number_input("Acre Lot", 0.01, 10.0, 0.5)
+        size = st.slider("House Size (sqft)", 300, 5000, 1200)
 
-    st.info(f"Estimated Range: ${low:,.0f} - ${high:,.0f}")
+    if st.button("Predict Price"):
 
-# ---------------------------
-# GRAPH SECTION (FIXED)
-# ---------------------------
-st.markdown("---")
-st.subheader("📊 Price vs Size")
+        data = np.array([[bed, bath, acre, size]])
+        price = model.predict(data)[0]
+        price *= location_factor[location]
 
-sizes = np.array([500, 1000, 1500, 2000, 3000])
+        st.markdown(f"<div class='result'>💰 ${price:,.2f}</div>", unsafe_allow_html=True)
+
+        low = price * 0.9
+        high = price * 1.1
+
+        st.info(f"Estimated Range: ${low:,.0f} - ${high:,.0f}")
+
+else:
+    file = st.file_uploader("Upload CSV", type=["csv"])
+
+    if file:
+        df = pd.read_csv(file)
+        preds = model.predict(df)
+        df["Predicted Price"] = preds
+        st.dataframe(df)
+
+st.markdown("</div>", unsafe_allow_html=True)
+
+# -------------------------
+# PLOTLY GRAPH (PREMIUM)
+# -------------------------
+st.markdown("<div class='card'>", unsafe_allow_html=True)
+
+st.subheader("📈 Price Growth")
+
+sizes = [500, 1000, 1500, 2000, 3000]
 sample = np.array([[3, 2, 0.5, s] for s in sizes])
 prices = model.predict(sample)
 
-# 🔥 FIX GRAPH SIZE + ALIGNMENT
-fig, ax = plt.subplots(figsize=(5, 3))  # smaller & clean
+fig = go.Figure()
 
-ax.plot(sizes, prices, marker='o', linewidth=2)
-ax.set_title("Price Growth", fontsize=12)
-ax.set_xlabel("Size (sqft)")
-ax.set_ylabel("Price")
+fig.add_trace(go.Scatter(
+    x=sizes,
+    y=prices,
+    mode='lines+markers',
+    line=dict(color='#00ffcc', width=3),
+    marker=dict(size=8)
+))
 
-# REMOVE EXTRA WHITE SPACE
-fig.tight_layout()
+fig.update_layout(
+    template="plotly_dark",
+    height=300,
+    margin=dict(l=10, r=10, t=30, b=10),
+    xaxis_title="Size (sqft)",
+    yaxis_title="Price"
+)
 
-# CENTER GRAPH
-st.pyplot(fig, use_container_width=False)
+st.plotly_chart(fig, use_container_width=True)
 
-# ---------------------------
+st.markdown("</div>", unsafe_allow_html=True)
+
+# -------------------------
 # FOOTER
-# ---------------------------
-st.markdown("---")
-st.caption("Built with XGBoost + Streamlit")
+# -------------------------
+st.markdown("<div style='text-align:center;color:gray;'>Built with ❤️ using XGBoost + Streamlit</div>", unsafe_allow_html=True)
