@@ -1,170 +1,141 @@
 import streamlit as st
 import numpy as np
 import pandas as pd
+import xgboost as xgb
 import matplotlib.pyplot as plt
-from xgboost import XGBRegressor
 
-# =========================
+# -----------------------------
 # PAGE CONFIG
-# =========================
+# -----------------------------
 st.set_page_config(
-    page_title="🏠 House Price Predictor PRO",
+    page_title="House Price Predictor PRO",
+    page_icon="🏠",
     layout="wide"
 )
 
-# =========================
-# DARK STYLE (CUSTOM CSS)
-# =========================
-st.markdown("""
-<style>
-body {
-    background-color: #0E1117;
-}
-.stApp {
-    background-color: #0E1117;
-    color: white;
-}
-</style>
-""", unsafe_allow_html=True)
-
-# =========================
-# TITLE
-# =========================
-st.title("🏠 House Price Predictor PRO")
-st.markdown("### Advanced ML-powered real estate price estimator")
-
-# =========================
+# -----------------------------
 # LOAD MODEL
-# =========================
-model = XGBRegressor()
-model.load_model("model.json")
+# -----------------------------
+@st.cache_resource
+def load_model():
+    model = xgb.XGBRegressor()
+    model.load_model("model.json")
+    return model
 
-# =========================
-# SIDEBAR OPTIONS
-# =========================
-st.sidebar.header("⚙️ Options")
+model = load_model()
+
+# -----------------------------
+# SIDEBAR
+# -----------------------------
+st.sidebar.title("⚙️ Options")
 
 mode = st.sidebar.radio(
     "Choose Mode",
     ["Single Prediction", "CSV Batch Prediction"]
 )
 
-# =========================
-# LOCATION MULTIPLIER
-# =========================
 location = st.sidebar.selectbox(
     "Select Location",
     ["Urban", "Suburban", "Rural"]
 )
 
-location_factor = {
-    "Urban": 1.5,
-    "Suburban": 1.2,
-    "Rural": 0.8
-}
-
-# =========================
-# MODEL ACCURACY DISPLAY
-# =========================
-st.sidebar.markdown("### 📊 Model Info")
-st.sidebar.write("Accuracy (R²): **0.89**")
+st.sidebar.markdown("---")
+st.sidebar.subheader("📊 Model Info")
+st.sidebar.write("Accuracy (R²): 0.89")
 st.sidebar.write("Model: XGBoost Regressor")
 
-# =========================
-# SINGLE PREDICTION
-# =========================
-if mode == "Single Prediction":
+# -----------------------------
+# TITLE
+# -----------------------------
+st.title("🏠 House Price Predictor PRO")
+st.caption("Advanced ML-powered real estate estimator")
 
-    st.subheader("🔮 Predict Single House Price")
+# -----------------------------
+# SINGLE PREDICTION
+# -----------------------------
+if mode == "Single Prediction":
 
     col1, col2 = st.columns(2)
 
     with col1:
-        bed = st.number_input("Bedrooms", min_value=1, step=1)
+        bed = st.number_input("Bedrooms", 1, 10, 2)
+        acre = st.number_input("Acre Lot", 0.01, 10.0, 0.5)
 
     with col2:
-        bath = st.number_input("Bathrooms", min_value=1, step=1)
+        bath = st.number_input("Bathrooms", 1, 10, 2)
+        size = st.slider("House Size (sqft)", 300, 5000, 1200)
 
-    acre = st.number_input("Acre Lot", min_value=0.0, step=0.01)
-    size = st.number_input("House Size (sqft)", min_value=1, step=10)
+    # location multiplier
+    location_factor = {
+        "Urban": 1.2,
+        "Suburban": 1.0,
+        "Rural": 0.8
+    }
 
     if st.button("Predict Price"):
 
-        if bed <= 0 or bath <= 0 or size <= 0:
-            st.error("❌ Invalid input values")
-        else:
-            data = np.array([[bed, bath, acre, size]])
+        data = np.array([[bed, bath, acre, size]])
+
+        with st.spinner("Predicting..."):
             price = model.predict(data)[0]
+            price *= location_factor[location]
 
-            # Apply location factor
-            price = price * location_factor[location]
+        st.success(f"💰 Predicted Price: ${price:,.2f}")
 
-            st.success(f"💰 Predicted Price: ${price:,.2f}")
+        # price range
+        low = price * 0.9
+        high = price * 1.1
 
-            # =========================
-            # GRAPH
-            # =========================
-            st.markdown("### 📈 Price vs Size")
+        st.info(f"Estimated Range: ${low:,.0f} - ${high:,.0f}")
 
-            sizes = [500, 1000, 1500, 2000, 2500]
-            prices = [
-                model.predict(np.array([[bed, bath, acre, s]]))[0] * location_factor[location]
-                for s in sizes
-            ]
+        # warning
+        if size < 400:
+            st.warning("⚠️ Very small house size → less accurate prediction")
 
-            fig, ax = plt.subplots()
-            ax.plot(sizes, prices, marker='o')
-            ax.set_xlabel("Size (sqft)")
-            ax.set_ylabel("Price")
-            ax.set_title("Price Growth")
-
-            st.pyplot(fig)
-
-# =========================
-# CSV BATCH PREDICTION
-# =========================
-elif mode == "CSV Batch Prediction":
-
+# -----------------------------
+# CSV MODE
+# -----------------------------
+else:
     st.subheader("📂 Upload CSV for Batch Prediction")
 
     file = st.file_uploader("Upload CSV", type=["csv"])
 
-    if file is not None:
+    if file:
         df = pd.read_csv(file)
 
-        st.write("### Preview")
+        st.write("Preview:")
         st.dataframe(df.head())
 
-        required_cols = ["bed", "bath", "acre_lot", "house_size"]
+        preds = model.predict(df)
 
-        if all(col in df.columns for col in required_cols):
+        df["Predicted Price"] = preds
 
-            if st.button("Predict CSV"):
+        st.success("Predictions added!")
 
-                data = df[required_cols].values
-                predictions = model.predict(data)
+        st.dataframe(df)
 
-                # Apply location factor
-                predictions = predictions * location_factor[location]
-
-                df["Predicted Price"] = predictions
-
-                st.write("### Results")
-                st.dataframe(df)
-
-                # Download button
-                csv = df.to_csv(index=False).encode("utf-8")
-                st.download_button(
-                    "⬇ Download Results",
-                    csv,
-                    "predictions.csv",
-                    "text/csv"
-                )
-        else:
-            st.error("CSV must contain: bed, bath, acre_lot, house_size")
-
-# =========================
-# FOOTER
-# =========================
+# -----------------------------
+# GRAPH (FIXED SIZE)
+# -----------------------------
 st.markdown("---")
-st.caption("🚀 Built with Streamlit | Model: XGBoost | Advanced Version")
+st.subheader("📈 Price vs Size")
+
+sizes = np.array([500, 1000, 1500, 2000, 3000])
+sample = np.array([[3, 2, 0.5, s] for s in sizes])
+prices = model.predict(sample)
+
+# FIX: SMALL CLEAN GRAPH
+fig, ax = plt.subplots(figsize=(6, 3))  # 👈 smaller size
+
+ax.plot(sizes, prices, marker='o')
+ax.set_title("Price Growth", fontsize=12)
+ax.set_xlabel("Size (sqft)")
+ax.set_ylabel("Price")
+
+st.pyplot(fig)
+
+# -----------------------------
+# FOOTER
+# -----------------------------
+st.markdown("---")
+st.caption("Model: XGBoost Regressor | Built with Streamlit 🚀")
