@@ -142,4 +142,4 @@ with st.container():
 # ----------------------------
 # FOOTER
 # ----------------------------
-st.markdown("<br><center style='color:gray'>✔ Ultra Final Version</center>", unsafe_allow_html=True)
+st.markdown("<br><center style='color:gray'>✔  Final Version</center>", unsafe_allow_html=True)
